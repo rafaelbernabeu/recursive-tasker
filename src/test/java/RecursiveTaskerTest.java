@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,5 +40,29 @@ public class RecursiveTaskerTest {
         List<Integer> values = Stream.iterate(0, x -> x + 1).limit(10).collect(Collectors.toList());
         Collection<Integer> result = new RecursiveTasker<>(values, x -> {}, INTEGER_REDUCER).start();
         Assert.assertEquals(45, result.stream().findFirst().get().intValue());
+    }
+
+    @Test
+    public void testarQueéMaisRaídoMesmo() throws Exception {
+        List<Integer> values = Stream.iterate(0, x -> x + 1).limit(100).collect(Collectors.toList());
+        Consumer<Integer> consumer = t -> {
+            try {
+                Thread.sleep(1);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        };
+        long ti1,ti2,tf1,tf2 = 0;
+        ti1 = System.nanoTime();
+        values.forEach(consumer);
+        tf1 = System.nanoTime();
+
+        ti2 = System.nanoTime();
+        Collection<Integer> result = new RecursiveTasker<>(values, consumer).start();
+        tf2 = System.nanoTime();
+
+        System.out.println("SingleThread: " + (tf1-ti1));
+        System.out.println("MultiThread : " + (tf2-ti2));
+        Assert.assertTrue((tf1-ti1) > (tf2-ti2));
     }
 }
