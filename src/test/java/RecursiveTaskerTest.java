@@ -43,7 +43,7 @@ public class RecursiveTaskerTest {
     }
 
     @Test
-    public void testarQueéMaisRaídoMesmo() throws Exception {
+    public void testarQueEhMaisRapidoMesmo() throws Exception {
         List<Integer> values = Stream.iterate(0, x -> x + 1).limit(100).collect(Collectors.toList());
         Consumer<Integer> consumer = t -> {
             try {
