@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
 import java.util.function.BiFunction;
@@ -66,7 +65,7 @@ public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
             System.out.println("splitValue: " + splitValue + ", start: " + start + ", middle: " + middle + ", end: " + end);
             RecursiveTask<Collection<T>> otherTask = new RecursiveTasker<T>(tasks, start, middle, itemAction, groupAction, splitValue);
             otherTask.fork();
-            List<T> resultList = new CopyOnWriteArrayList<>(new RecursiveTasker<T>(tasks, middle, end, itemAction, groupAction, splitValue).compute());
+            Collection<T> resultList = new RecursiveTasker<T>(tasks, middle, end, itemAction, groupAction, splitValue).compute();
             return groupAction.apply(resultList, otherTask.join());
         }
     }
