@@ -25,7 +25,7 @@ The for 100 elements and a splitValue of 10
 Until reach the splitValue, each division creates one new thread, forming a tree of tasks.
 
 
-##Signatures
+Signatures
 
 public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction)
 public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BiFunction<Collection<T>, Collection<T>, Collection<T>> groupAction) {
@@ -39,7 +39,8 @@ You can use this groupAction operator to sum a list of integer results:
 private static final BinaryOperator<Collection<Integer>> INTEGER_REDUCER = (x, y) -> Arrays.asList(x.stream().reduce((a, b) -> a + b).get() +
             y.stream().reduce((a, b) -> a + b).get());
 
-##Usage example:
+
+Usage example:
 
 new RecursiveTasker<>(list, t -> {}).start(2);
 
