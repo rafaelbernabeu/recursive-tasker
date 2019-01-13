@@ -1,4 +1,4 @@
-Recursive Tasker
+# Recursive Tasker
 
 Suppose that you have a list with X tasks.
 The code will recursively split the list and start new threads.
@@ -25,10 +25,11 @@ The for 100 elements and a splitValue of 10
 Until reach the splitValue, each division creates one new thread, forming a tree of tasks.
 
 
-Signatures
-
+## Signatures
+``` java
 public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction)
-public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BiFunction<Collection<T>, Collection<T>, Collection<T>> groupAction) {
+public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BiFunction<Collection<T>, Collection<T>, Collection<T>> groupAction)
+```
 
 The itemAction will be executed for each item in the list.
 The groupAction is to customize the join action of the results lists.
@@ -40,9 +41,11 @@ private static final BinaryOperator<Collection<Integer>> INTEGER_REDUCER = (x, y
             y.stream().reduce((a, b) -> a + b).get());
 
 
-Usage example:
+## Usage example:
 
+``` java
 new RecursiveTasker<>(list, t -> {}).start(2);
+```
 
 Given an List<T>  with size of 10
 When run the recursive tasker with a start value = 2
@@ -59,3 +62,8 @@ Obs.:
 1) Multithread execution is unpredictable, so the results order are random.
 2) Use single thread execution for small tasks. Keep in mind the computional cost of creation and management of threads.
 3) Item actions won't changes the reference of the objects in the list. Only mutates the data inside them.
+
+
+See:
+[Fork/Join Framework](https://docs.oracle.com/javase/tutorial/essential/concurrency/forkjoin.html)
+
