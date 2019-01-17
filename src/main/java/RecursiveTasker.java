@@ -3,7 +3,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
-import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 
 public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
@@ -13,19 +13,19 @@ public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
     private final int start;
     private final int end;
     private final Consumer<T> itemAction;
-    private final BiFunction<Collection<T>, Collection<T>, Collection<T>> groupAction;
+    private final BinaryOperator<Collection<T>> groupAction;
     private int splitValue;
 
     public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction) {
-        this(tasks, 0, tasks.size(), itemAction, (x, y) -> { x.addAll(y); return x; }, getSplitValue(tasks));
+        this(tasks, 0, tasks.size(), itemAction, (x, y) -> { x.addAll(y); return x; }, getSplitValue(tasks), null);
     }
 
-    public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BiFunction<Collection<T>, Collection<T>, Collection<T>> groupAction) {
-        this(tasks, 0, tasks.size(), itemAction, groupAction, getSplitValue(tasks));
+    public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BinaryOperator<Collection<T>> groupAction) {
+        this(tasks, 0, tasks.size(), itemAction, groupAction, getSplitValue(tasks), null);
     }
 
-    private RecursiveTasker(Collection<T> tasks, int start, int end, Consumer<T> itemAction, BiFunction<Collection<T>, Collection<T>, Collection<T>> groupAction, int splitValue) {
-        pool = createPool();
+    private RecursiveTasker(Collection<T> tasks, int start, int end, Consumer<T> itemAction, BinaryOperator<Collection<T>> groupAction, int splitValue, ForkJoinPool pool) {
+        this.pool = pool == null ? new ForkJoinPool() : pool;
         this.tasks = new ArrayList<>(tasks);
         this.start = start;
         this.end = end;
@@ -46,35 +46,28 @@ public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
         }
     }
 
-    private ForkJoinPool createPool() {
-        if (pool == null) {
-            return new ForkJoinPool();
-        }
-        return pool;
-    }
-
     @Override
     protected Collection<T> compute() {
         if (end - start <= splitValue) {
             for (int i = start; i < end; i++) {
-                itemAction.accept(tasks.get(i));
+                try {
+                    itemAction.accept(tasks.get(i));
+                } catch (Exception e) {
+                    pool.shutdownNow();
+                    throw e;
+                }
             }
             return tasks.subList(start, end);
         } else {
             int middle = start + ((end - start) / 2);
-            System.out.println("splitValue: " + splitValue + ", start: " + start + ", middle: " + middle + ", end: " + end);
-            RecursiveTask<Collection<T>> otherTask = new RecursiveTasker<T>(tasks, start, middle, itemAction, groupAction, splitValue);
+            RecursiveTask<Collection<T>> otherTask = new RecursiveTasker<T>(tasks, start, middle, itemAction, groupAction, splitValue, pool);
             otherTask.fork();
-            Collection<T> resultList = new RecursiveTasker<T>(tasks, middle, end, itemAction, groupAction, splitValue).compute();
+            Collection<T> resultList = new RecursiveTasker<T>(tasks, middle, end, itemAction, groupAction, splitValue, pool).compute();
             return groupAction.apply(resultList, otherTask.join());
         }
     }
 
-    public void cancel() {
-        pool.shutdownNow();
-    }
-
-    public Collection<T> start() throws Exception {
+    public Collection<T> start() {
         return pool.invoke(this);
     }
 
