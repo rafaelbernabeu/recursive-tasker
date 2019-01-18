@@ -60,9 +60,9 @@ public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
             return tasks.subList(start, end);
         } else {
             int middle = start + ((end - start) / 2);
-            RecursiveTask<Collection<T>> otherTask = new RecursiveTasker<T>(tasks, start, middle, itemAction, groupAction, splitValue, pool);
+            RecursiveTask<Collection<T>> otherTask = new RecursiveTasker<>(tasks, start, middle, itemAction, groupAction, splitValue, pool);
             otherTask.fork();
-            Collection<T> resultList = new RecursiveTasker<T>(tasks, middle, end, itemAction, groupAction, splitValue, pool).compute();
+            Collection<T> resultList = new RecursiveTasker<>(tasks, middle, end, itemAction, groupAction, splitValue, pool).compute();
             return groupAction.apply(resultList, otherTask.join());
         }
     }
