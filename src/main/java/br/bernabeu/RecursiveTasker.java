@@ -2,11 +2,13 @@ package br.bernabeu;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
 
@@ -23,11 +25,15 @@ public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
     }
 
     public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, ForkJoinPool pool) {
-        this(tasks, 0, tasks.size(), itemAction, (x, y) -> { x.addAll(y); return x; }, getSplitValue(tasks), pool);
+        this(tasks, itemAction, (x, y) -> { x.addAll(y); return x; }, pool);
     }
 
     public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BinaryOperator<Collection<T>> groupAction) {
-        this(tasks, 0, tasks.size(), itemAction, groupAction, getSplitValue(tasks), null);
+        this(tasks, itemAction, groupAction, null);
+    }
+
+    public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BinaryOperator<Collection<T>> groupAction, ForkJoinPool pool) {
+        this(tasks, 0, tasks.size(), itemAction, groupAction, getSplitValue(tasks), pool);
     }
 
     private RecursiveTasker(Collection<T> tasks, int start, int end, Consumer<T> itemAction, BinaryOperator<Collection<T>> groupAction, int splitValue, ForkJoinPool pool) {
@@ -41,7 +47,8 @@ public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
     }
 
     private static <T> int getSplitValue(Collection<T> tasks) {
-        int r = tasks.size() / (Runtime.getRuntime().availableProcessors() * 2);
+        int size = tasks.size();
+        int r = size / (Runtime.getRuntime().availableProcessors() * 2);
         return r > 0 ? r : 1;
     }
 
@@ -51,7 +58,7 @@ public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
             for (int i = start; i < end; i++) {
                 itemAction.accept(tasks.get(i));
             }
-            return tasks.subList(start, end);
+            return groupAction.apply(tasks.subList(start, end), Collections.emptyList());
         } else {
             int middle = start + ((end - start) / 2);
             RecursiveTask<Collection<T>> otherTask = new RecursiveTasker<>(tasks, start, middle, itemAction, groupAction, splitValue, pool);
@@ -61,7 +68,14 @@ public class RecursiveTasker<T> extends RecursiveTask<Collection<T>> {
         }
     }
 
+    public Collection<T> start(Function<Collection<T>, Integer> splitValueFuncion) {
+        return this.start(splitValueFuncion.apply(this.tasks));
+    }
+
     public Collection<T> start(int splitValue) {
+        if (splitValue <= 0) {
+            throw new IllegalArgumentException("Value must be greater than zero.");
+        }
         this.splitValue = splitValue;
         return this.start();
     }
