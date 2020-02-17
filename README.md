@@ -21,7 +21,9 @@ The default value is calculated by dividing the amount of tasks by the available
 ## Signatures
 ``` java
 public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction)
-public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BiFunction<Collection<T>, Collection<T>, Collection<T>> groupAction)
+public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, ForkJoinPool pool)
+public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BinaryOperator<Collection<T>> groupAction)
+public RecursiveTasker(Collection<T> tasks, Consumer<T> itemAction, BinaryOperator<Collection<T>> groupAction, ForkJoinPool pool)
 ```
 A collection of T elements that will be applied the consumer object.
 
@@ -32,8 +34,11 @@ The default groupAction is collect all results.
 
 You can use this groupAction operator to sum a list of integer results:
 ``` java
-private static final BinaryOperator<Collection<Integer>> INTEGER_REDUCER = (x, y) -> Arrays.asList(x.stream().reduce((a, b) -> a + b).get() +
-            y.stream().reduce((a, b) -> a + b).get());
+private static final BinaryOperator<Collection<Integer>> INTEGER_COUNTER_REDUCER = (x, y) ->
+            Collections.singletonList(
+                    x.stream().reduce((a, b) -> a + b).orElseGet(() -> 0) +
+                    y.stream().reduce((a, b) -> a + b).orElseGet(() -> 0)
+            );
 ```
 
 ## Usage example:
